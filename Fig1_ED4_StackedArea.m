@@ -9,8 +9,8 @@ if ~exist(FigurePath,'dir')
 end 
 
 Types = {'Region','Process','Product','Gas'};
-Ylims_low = [ -1 -0.4 -1 -1.5 -1 -1.5 -1 -1.5 -0.4 -6];
-Ylims_upp = [  3  1.2  3  4.5  3  4.5  3  4.5  1.2 20];
+Ylims_low = [ -1 -0.4 -1 -1.8 -1 -1.8 -1 -1.8 -0.4 -8];
+Ylims_upp = [  3  1.2  3  5.4  3  5.4  3  5.4  1.2 22];
 
 for ireg = 1:length(RegionNames)
     for itype = 1:length(Types)
@@ -23,17 +23,17 @@ for ireg = 1:length(RegionNames)
             LegendNames = RegionNames(1:9);
             Values_pos = E_world_by_Region_pos;
             Values_neg = E_world_by_Region_neg;
-            vind = [4 8 6 5 1 7 3 9 2];
+            vind = [4 8 6 1 7 5 3 2 9];
         elseif itype ==2
             LegendNames = ProcessNames;
             Values_pos = squeeze(E_reg_by_Process_pos(ireg,:,:));
             Values_neg = squeeze(E_reg_by_Process_neg(ireg,:,:));
-            vind = [1 5 2 7 9 12 6 4 8 10 11 3];
+            vind = [1 5 3 2 7 12 9 6 4 8 10 11 13];
         elseif itype ==3
             LegendNames = ProdGroupNames;
             Values_pos = squeeze(E_reg_by_PGroup_pos(ireg,:,:));
             Values_neg = squeeze(E_reg_by_PGroup_neg(ireg,:,:));
-            vind = [7 3 11 6 8 5 10 13 2 9 14 12 4 1];
+            vind = [7 3 1 11 6 8 5 10 13 2 9 14 12 4 15];
         elseif itype ==4
             LegendNames = GasNames;
             Values_pos = squeeze(E_reg_by_GHG_pos(ireg,:,:));

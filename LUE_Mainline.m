@@ -9,7 +9,7 @@ clear all
 
 disp('Initializing...')
 Years = 1961:2017; 
-numprocesses = 12;
+numprocesses = 13;
 GWP = 100; %'100' sets to 100-year time horizon potentials, '20' to 20-year time horizon...
 
 if GWP==100
@@ -53,7 +53,7 @@ prodNames2 = [cropNames ; livestockprodNames2 ; forestprodNames];
 ProdGroupNames = {'Wood','Pork','Beef','Chicken','Other Meat','Dairy','Cereals','Veg','Fruit','Pulses','Oil Crops','Fiber','Spices','Sugar'};
 RegionNames = {'Europe and Russia','Oceania','North America','Latin America','East Asia','Southeast Asia','South Asia','sub-Saharan Africa','Middle East','World'};
 GasNames = {'CO2','CH4','N2O'};
-ProcessNames = {'LUC-Crops','LUC-Pasture','LUC-Forest','Fertilizer','Enteric Ferm.','Manure Management','Rice','Manure-Soil','Manure-Pasture','Residues','Burning','Peatland'};
+ProcessNames = {'LUC-Crops','LUC-Pasture','LUC-Wood','Fertilizer','Enteric Ferm.','Manure Management','Rice','Manure-Soil','Manure-Pasture','Residues','Burning','Peatland','LUC-Forest'};
 DriversNames = {'Population [1000]','Ag Production [t]','Wood Production [m3]','Crop Area [ha]','Livestock Head','Pasture Area [ha]','Forest Area [ha]','Ag Production [kcal]','Ag Production [$]','Livestock Area [ha]'};
 
 
@@ -248,7 +248,7 @@ disp('Reading in BLUE data...')
 
 load(['BLUE_' BLUEscenario '.mat'],['LUCems_BLUE_' lower(BLUEmode)])
 eval(['LUCems_BLUE = LUCems_BLUE_' lower(BLUEmode) ';'])
-load('peat-emissions.mat','LUCems_Peat')
+load('peat-burning-emissions.mat','LUCems_Peat_burning')
 
 % Process 1: Clearing for Crops
 P1_LUCems_crops = LUCems_BLUE(:,:,1);
@@ -258,13 +258,36 @@ P1_LUCems_crops = permute(P1_LUCems_crops,[1,3,2]);
 P2_LUCems_pasture = LUCems_BLUE(:,:,2);
 P2_LUCems_pasture = permute(P2_LUCems_pasture,[1,3,2]);
 
-% Process 3: Wood Harvest minus Regrowth on Abandoned Land
+% Process 3: Wood Harvest
 P3_LUCems_wood = LUCems_BLUE(:,:,3);
 P3_LUCems_wood = permute(P3_LUCems_wood,[1,3,2]);
 
-% Process 12: Peat emissions
-P12_LUCems_peat = LUCems_Peat;
+% Process 13: Regrowth on Abandoned Land
+P13_LUCems_abandoned = LUCems_BLUE(:,:,4);
+P13_LUCems_abandoned = permute(P13_LUCems_abandoned,[1,3,2]);
 
+% Process 12: Peat burning emissions
+P12_LUCems_peat_burning = LUCems_Peat_burning;
+
+% Process 12: Peat drainage emissions (from the FAOSTAT Website)
+Gg_to_Gt = 1e-6; %convert Gg to Gt
+EoI=72330; %Net emissions/removals (CO2) (Cropland)
+[P12_LUCems_peat_crop,countries,~]  = readFAO('Emissions_Land_Use_Cropland_E_All_Data.csv',raw,lastFAOyear,EoI);
+P12_LUCems_peat_crop = reorder(P12_LUCems_peat_crop,countries,countryCodes);
+P12_LUCems_peat_crop = NanCheck(P12_LUCems_peat_crop(:,:,1:size(Years,2))) .* Gg_to_Gt; %trim to latest BLUE year...
+EoI=72331; %Net emissions/removals (CO2) (Grassland)
+[P12_LUCems_peat_grass,countries,~]  = readFAO('Emissions_Land_Use_Grassland_E_All_Data.csv',raw,lastFAOyear,EoI);
+P12_LUCems_peat_grass = reorder(P12_LUCems_peat_grass,countries,countryCodes);
+P12_LUCems_peat_grass = NanCheck(P12_LUCems_peat_grass(:,:,1:size(Years,2))) .* Gg_to_Gt; %trim to latest BLUE year...
+% extrapolation back to 1961:
+% For boreal and temperate peatlands, keep 1961-1990 constant at the 1990 value (Leifeld et al., NCC, 2019)
+% For tropical peatlands of equatorial Asia, interpolate from 0 in 1980 to the 1990 value (Hooijer et al., 2010)
+P12_LUCems_peat_crop(:,:,1:29) = repmat(P12_LUCems_peat_crop(:,:,30),[1,1,29]);
+P12_LUCems_peat_grass(:,:,1:29) = repmat(P12_LUCems_peat_grass(:,:,30),[1,1,29]);
+P12_LUCems_peat_crop([100,125,162],:,1:20) = 0; % Indonesia, Malaysia, Papua New Guinea
+P12_LUCems_peat_grass([100,125,162],:,1:20) = 0;
+P12_LUCems_peat_crop([100,125,162],:,21:29) = P12_LUCems_peat_crop([100,125,162],:,21:29).*permute(repmat(0.1:0.1:0.9,[3,1]),[1,3,2]);
+P12_LUCems_peat_grass([100,125,162],:,21:29) = P12_LUCems_peat_grass([100,125,162],:,21:29).*permute(repmat(0.1:0.1:0.9,[3,1]),[1,3,2]);
 
 %% Now Allocate LUCems to specific FAO items...
 
@@ -284,11 +307,16 @@ P2_LUCems_pasture = allocate(P2_LUCems_pasture,type,method);
 type = 'wood';
 method = 'production';
 P3_LUCems_wood = allocate(P3_LUCems_wood,type,method);
+P13_LUCems_abandoned = allocate(P13_LUCems_abandoned,type,method);
 
 %LUCems from peat
 type = 'crops';
 method = AllocationMethod;
-P12_LUCems_peat = allocate(P12_LUCems_peat,type,method);
+P12_LUCems_peat_burning = allocate(P12_LUCems_peat_burning,type,method);
+P12_LUCems_peat_crop = allocate(P12_LUCems_peat_crop,type,method);
+type = 'livestock';
+method = AllocationMethod;
+P12_LUCems_peat_grass = allocate(P12_LUCems_peat_grass,type,method);
 
 
 %% Import AG Emissions Data (from the FAOSTAT Website)
@@ -381,8 +409,9 @@ AEMatrix = zeros(size(countryCodes,1),size(Years,2),numprocesses,size(allCodes,1
 %Assign LUC Ems (all in Gt CO2)
 AEMatrix(:,:,1,:,1) = permute(P1_LUCems_crops,[1,3,2]); %process 1=clearing for crops
 AEMatrix(:,:,2,:,1) = permute(P2_LUCems_pasture,[1,3,2]);  %process 2=clearing for pasture
-AEMatrix(:,:,3,:,1) = permute(P3_LUCems_wood,[1,3,2]);  %process 3=wood harvest less abandonment
-AEMatrix(:,:,12,:,1) = permute(P12_LUCems_peat,[1,3,2]); %process 12=peat
+AEMatrix(:,:,3,:,1) = permute(P3_LUCems_wood,[1,3,2]);  %process 3=wood harvest
+AEMatrix(:,:,13,:,1) = permute(P13_LUCems_abandoned,[1,3,2]);  %process 13=abandonment
+AEMatrix(:,:,12,:,1) = permute(P12_LUCems_peat_burning+P12_LUCems_peat_crop+P12_LUCems_peat_grass,[1,3,2]); %process 12=peat
 
 %Assign Ag Ems (convert from Gt CH4 or N2O to Gt CO2)
 AEMatrix(:,:,4,:,3) = permute(P4_AGems_fertilizer,[1,3,2]) .* N2O_GWP; %process 4=nitrogen fertilizer application
@@ -395,6 +424,15 @@ AEMatrix(:,:,9,:,3) = permute(P9_AGems_manurepasture,[1,3,2]) .* N2O_GWP;  %proc
 AEMatrix(:,:,10,:,3) = permute(P10_AGems_residues,[1,3,2]) .* N2O_GWP;  %process 10=crop res ems
 AEMatrix(:,:,11,:,3) = permute(P11_AGems_burnresid_N2O,[1,3,2]) .* N2O_GWP;  %process 11=burning N2O
 AEMatrix(:,:,11,:,2) = permute(P11_AGems_burnresid_CH4,[1,3,2]) .* CH4_GWP;  %process 11=burning CH4
+
+% Reassign process 13 (abandonment) to a non-existing product
+nproduct_org = size(allCodes,1);
+allNames(nproduct_org+1,1) = {'nes'};
+ProdGroupNames(1,15) = {'nes'};
+prod_categoryCodes(nproduct_org+1) = 15;
+AEMatrix(:,:,13,nproduct_org+1,:) = AEMatrix(:,:,13,nproduct_org,:);
+AEMatrix(:,:,13,nproduct_org,:) = 0;
+Drivers(:,:,nproduct_org+1,:) = 0;
 
 save ([DataPath '/AEMatrix_' lower(BLUEmode) '.mat'],'AEMatrix','Drivers','Years','countryNames','countryCodes','allNames','prodCodes','ProcessNames','GasNames','regionCodes','RegionNames','prod_categoryCodes','ProdGroupNames','DriversNames')
 % save ([DataPath '/AEMatrix_' lower(BLUEmode) '_' AllocationMethod '.mat'],'AEMatrix','Drivers','Years','countryNames','countryCodes','allNames','prodCodes','ProcessNames','GasNames','regionCodes','RegionNames','prod_categoryCodes','ProdGroupNames','DriversNames')

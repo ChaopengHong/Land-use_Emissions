@@ -29,7 +29,6 @@ load([DataPath '/AEMatrix_cycle_GWP.mat'])
 load([DataPath '/AEMatrix_MC_Accountings.mat'])
 load([DataPath '/AEMatrix_cycle_MC_All.mat'])
 load([DataPath '/AEMatrix_MC_Ag.mat'])
-load([DataPath '/BLUE/BLUE_Sensitivity.mat'])
 load([DataPath '/OtherDataset.mat'])
 load([DataPath '/AEMatrix_cycle.mat'])
 
@@ -49,9 +48,14 @@ end
 % Population (P): people
 P_country = sumDims(Drivers(:,:,:,1),3)*1000;
 % Production (A): kilocalories
-A_country_by_Product = squeeze(Drivers(:,:,:,8));
+A_country_by_Product = squeeze(Drivers(:,:,:,8)); % kilocalories
 A_country_by_PGroup = squeeze(Drivers_PGroup(:,:,:,8));
 A_country = sumDims(A_country_by_Product,3);
+A_country_by_Product_tons = squeeze(Drivers(:,:,:,2)); % metric tons
+A_country_by_Product_m3 = squeeze(Drivers(:,:,:,3)); % m^3
+A_country_by_Product_mix = A_country_by_Product; % mixed units: kilocalories for food crops, meat and dairy products
+A_country_by_Product_mix(:,:,prod_categoryCodes==12) = A_country_by_Product_tons(:,:,prod_categoryCodes==12); % fiber crops: metric tons
+A_country_by_Product_mix(:,:,prod_categoryCodes==1) = A_country_by_Product_m3(:,:,prod_categoryCodes==1); % wood: m^3
 % Land (L): hectares (crop area + pasture area)
 L_country_by_Product = squeeze(Drivers(:,:,:,4) + Drivers(:,:,:,10));
 L_country_by_PGroup = squeeze(Drivers_PGroup(:,:,:,4) + Drivers_PGroup(:,:,:,10));
@@ -72,6 +76,22 @@ a_country_by_Product = NanCheck(A_country_by_Product./repmat(P_country,[1,1,npro
 l_country_by_Product = NanCheck(L_country_by_Product./A_country_by_Product);
 e_country_by_Product = NanCheck(E_country_by_Product./L_country_by_Product);
 f_country_by_Product = NanCheck(E_country_by_Product./A_country_by_Product);
+a_country_by_Product_mix = NanCheck(A_country_by_Product_mix./repmat(P_country,[1,1,nproduct]));
+l_country_by_Product_mix = NanCheck(L_country_by_Product./A_country_by_Product_mix);
+f_country_by_Product_mix = NanCheck(E_country_by_Product./A_country_by_Product_mix);
+
+% For Figure ED6
+E_country_by_Product_CO2 = sumDims(AEMatrix(:,:,:,:,1),[3]);
+E_country_by_Product_CH4 = sumDims(AEMatrix(:,:,:,:,2),[3]);
+E_country_by_Product_N2O = sumDims(AEMatrix(:,:,:,:,3),[3]);
+E_country_by_Product_CH4_rice = sumDims(AEMatrix(:,:,7,:,2),[3]);
+E_country_by_Product_N2O_fert = sumDims(AEMatrix(:,:,4,:,3),[3]);
+f_country_by_Product_CO2 = NanCheck(E_country_by_Product_CO2./A_country_by_Product);
+f_country_by_Product_CH4 = NanCheck(E_country_by_Product_CH4./A_country_by_Product);
+f_country_by_Product_N2O = NanCheck(E_country_by_Product_N2O./A_country_by_Product);
+f_country_by_Product_CH4_rice = NanCheck(E_country_by_Product_CH4_rice./A_country_by_Product);
+f_country_by_Product_N2O_fert = NanCheck(E_country_by_Product_N2O_fert./A_country_by_Product);
+
 
 %% Regional Totals
 % Create Regional Aggregates
@@ -117,7 +137,7 @@ E_reg_by_GHG = sumDims(Regional_AEMatrix,[3,4]);
 E_reg_by_Process = sumDims(Regional_AEMatrix,[4,5]);
 E_reg_by_Product = sumDims(Regional_AEMatrix,[3,5]);
 E_reg_by_PGroup = sumDims(Regional_AEMatrix_PGroup,[3,5]);
-E_reg_LUC = sumDims(Regional_AEMatrix(:,:,[1,2,3,12],:,:),[3,4,5]);
+E_reg_LUC = sumDims(Regional_AEMatrix(:,:,[1,2,3,12,13],:,:),[3,4,5]);
 E_reg_Ag = sumDims(Regional_AEMatrix(:,:,4:11,:,:),[3,4,5]);
 
 a_reg = NanCheck(A_reg./P_reg);
@@ -131,16 +151,16 @@ FF_CO2 = 35836.6; % Mt in 2017
 Oth_CH4 = 7456.6; % Mt CO2-eq in 2017
 Oth_N2O = 869.7; % Mt CO2-eq in 2017
 E_world_by_Product_Gas = sumDims(Regional_AEMatrix_PGroup(end,end,:,:,:),[1,2,3])*1e3;
-E_world_by_Product_Gas(15,:) = sum(E_world_by_Product_Gas(1:14,:),1);
+E_world_by_Product_Gas(end+1,:) = sum(E_world_by_Product_Gas(1:end,:),1);
 E_world_by_Product_Gas(:,4) = sum(E_world_by_Product_Gas(:,1:3),2);
-E_world_by_Product_Gas(:,5) = E_world_by_Product_Gas(:,4)./repmat(E_world_by_Product_Gas(15,4),[15,1]);
-E_world_by_Product_Gas(:,6) = E_world_by_Product_Gas(:,4)./repmat(E_world_by_Product_Gas(15,4)+FF_CO2+Oth_CH4+Oth_N2O,[15,1]);
+E_world_by_Product_Gas(:,5) = E_world_by_Product_Gas(:,4)./repmat(E_world_by_Product_Gas(end,4),[nprodgroup+1,1]);
+E_world_by_Product_Gas(:,6) = E_world_by_Product_Gas(:,4)./repmat(E_world_by_Product_Gas(end,4)+FF_CO2+Oth_CH4+Oth_N2O,[nprodgroup+1,1]);
 E_world_by_Product_Gas_MC = squeeze(AEMatrix_All_WYPgG(end,:,:,:,:))*1e3;
-E_world_by_Product_Gas_MC(15,:,:,:) = sum(E_world_by_Product_Gas_MC(1:14,:,:,:),1);
+E_world_by_Product_Gas_MC(end+1,:,:,:) = sum(E_world_by_Product_Gas_MC(1:end,:,:,:),1);
 E_world_by_Product_Gas_MC(:,4,:,:) = sum(E_world_by_Product_Gas_MC(:,1:3,:,:),2);
-E_world_by_Product_Gas_MC(:,5,:,:) = E_world_by_Product_Gas_MC(:,4,:,:)./repmat(E_world_by_Product_Gas_MC(15,4,:,:),[15,1,1,1]);
-E_world_by_Product_Gas_MC(:,6,:,:) = E_world_by_Product_Gas_MC(:,4,:,:)./(repmat(E_world_by_Product_Gas_MC(15,4,:,:),[15,1,1,1])+...
-                                     permute(repmat(FF_CO2+Oth_CH4*CH4_Ranges+Oth_N2O*N2O_Ranges,[15,1,1,6]),[1,3,2,4]));
+E_world_by_Product_Gas_MC(:,5,:,:) = E_world_by_Product_Gas_MC(:,4,:,:)./repmat(E_world_by_Product_Gas_MC(end,4,:,:),[nprodgroup+1,1,1,1]);
+E_world_by_Product_Gas_MC(:,6,:,:) = E_world_by_Product_Gas_MC(:,4,:,:)./(repmat(E_world_by_Product_Gas_MC(end,4,:,:),[nprodgroup+1,1,1,1])+...
+                                     permute(repmat(FF_CO2+Oth_CH4*CH4_Ranges+Oth_N2O*N2O_Ranges,[nprodgroup+1,1,1,6]),[1,3,2,4]));
 E_world_by_Product_Gas_CIs = calCIs(E_world_by_Product_Gas_MC);
 E_world_by_Product_Gas_lower = squeeze(E_world_by_Product_Gas_CIs(:,:,2));
 E_world_by_Product_Gas_upper = squeeze(E_world_by_Product_Gas_CIs(:,:,3));
@@ -231,17 +251,19 @@ for iblue = 1:length(BLUEmodesNames)
     for imethod = 1:length(methods)
         eval(['E_world_by_PGroup_accounting(:,:,iblue,imethod) = calCIs(AEMatrix_All_Pg_' num2str(iblue) '_' num2str(imethod) ');'])
         eval(['E_world_by_Process_accounting(:,:,iblue,imethod) = calCIs(AEMatrix_All_Pc_' num2str(iblue) '_' num2str(imethod) ');'])
+        eval(['E_world_by_accounting(:,iblue,imethod) = calCIs(sumDims(AEMatrix_All_Pg_' num2str(iblue) '_' num2str(imethod) ',1));'])
+        eval(['E_world_by_accounting(:,iblue,imethod) = calCIs(sumDims(AEMatrix_All_Pc_' num2str(iblue) '_' num2str(imethod) ',1));'])
     end
 end
 
 %% Data for Figure ED5 (changes over the last decade)
 E_country_by_Product_avg = squeeze(mean(E_country_by_Product(:,(end-10):end,:),2));
 E_country_by_Product_chg = squeeze(E_country_by_Product(:,end,:)./E_country_by_Product(:,end-10,:)) - 1;
-A_country_by_Product_chg = squeeze(A_country_by_Product(:,end,:)./A_country_by_Product(:,end-10,:)) - 1;
-a_country_by_Product_chg = squeeze(a_country_by_Product(:,end,:)./a_country_by_Product(:,end-10,:)) - 1;
-l_country_by_Product_chg = squeeze(l_country_by_Product(:,end,:)./l_country_by_Product(:,end-10,:)) - 1;
+A_country_by_Product_chg = squeeze(A_country_by_Product_mix(:,end,:)./A_country_by_Product_mix(:,end-10,:)) - 1;
+a_country_by_Product_chg = squeeze(a_country_by_Product_mix(:,end,:)./a_country_by_Product_mix(:,end-10,:)) - 1;
+l_country_by_Product_chg = squeeze(l_country_by_Product_mix(:,end,:)./l_country_by_Product_mix(:,end-10,:)) - 1;
 e_country_by_Product_chg = squeeze(e_country_by_Product(:,end,:)./e_country_by_Product(:,end-10,:)) - 1;
-f_country_by_Product_chg = squeeze(f_country_by_Product(:,end,:)./f_country_by_Product(:,end-10,:)) - 1;
+f_country_by_Product_chg = squeeze(f_country_by_Product_mix(:,end,:)./f_country_by_Product_mix(:,end-10,:)) - 1;
 
 %% Data for Figure ED7
 E_world_by_PGroup_wFeed = zeros(nyear,nprodgroup);
@@ -265,7 +287,7 @@ E_reg_Ag_nprctile = prctile(E_reg_Ag_ntimes,[2.5 5 10 16 25 75 84 90 95 97.5],3)
 E_reg_Ag_mean = mean(E_reg_Ag_ntimes,3);
 
 %% Data for Figure ED10 & ED11
-E_reg_LUC_nBLUE = squeeze(mean(sumDims(AEMatrix_All_RgYPc(:,:,[1,2,3,12],:,:),3),3));
+E_reg_LUC_nBLUE = squeeze(mean(sumDims(AEMatrix_All_RgYPc(:,:,[1,2,3,12,13],:,:),3),3));
 E_reg_LUC_nBLUE(end+1,:,:) = sum(E_reg_LUC_nBLUE(1:end,:,:),1);
 E_reg_nBLUE = E_reg_LUC_nBLUE + repmat(E_reg_Ag,[1,1,size(E_reg_LUC_nBLUE,3)]);
 E_reg_MC = sumDims(AEMatrix_All_RgYPc,3);
@@ -287,6 +309,11 @@ Change_f_HN_BLUE = f_reg_HN_BLUE./repmat(f_reg_HN_BLUE(:,1),[1,length(Years_HN)]
 
 
 %% Save
+% Rename
+ProcessNames(ismember(ProcessNames,{'LUC-Wood'})) = {'Wood Harvest'};
+ProcessNames(ismember(ProcessNames,{'LUC-Forest'})) = {'Ag. Abandonment'};
+ProdGroupNames(ismember(ProdGroupNames,{'nes'})) = {'No Product'};
+allNames(ismember(allNames,{'nes'})) = {'No Product'};
 YearNames = cellfun(@(x){['Y' num2str(x)]},num2cell(Years));
 writeTable(OutExcelFile,'1.1.LUEmis',E_reg,{'Area','Year'},RegionNames,YearNames)
 writeTable(OutExcelFile,'1.2.LUEmis',permute(E_reg_by_Process,[1,3,2]),{'Area','Process','Year'},RegionNames,ProcessNames,YearNames)
