@@ -113,7 +113,7 @@ end %if makeplot
 %% Panel x (l - Land per unit ag prod) = variable 2
 var=2;
 makeplot=1;
-MyColor = flipud(GreenMap);
+MyColor = flipud(BlueMap);
 
 if makeplot==1
     

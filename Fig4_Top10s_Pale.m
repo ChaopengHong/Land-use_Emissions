@@ -10,7 +10,7 @@ if ~exist(FigurePath,'dir')
     mkdir(FigurePath)
 end
 
-color_all = {'GrayMap','BlueMap','PurpleMap','GreenMap','OrangeMap','RedMap'};
+color_all = {'GrayMap','GreenMap','PurpleMap','BlueMap','OrangeMap','RedMap'};
 
 %% Intensities of the key Pale factors by country - Top n countries 
 for palefactor=1:6

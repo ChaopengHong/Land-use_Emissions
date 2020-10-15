@@ -80,7 +80,7 @@ a_country_by_Product_mix = NanCheck(A_country_by_Product_mix./repmat(P_country,[
 l_country_by_Product_mix = NanCheck(L_country_by_Product./A_country_by_Product_mix);
 f_country_by_Product_mix = NanCheck(E_country_by_Product./A_country_by_Product_mix);
 
-% For Figure ED6
+% For Figure ED5
 E_country_by_Product_CO2 = sumDims(AEMatrix(:,:,:,:,1),[3]);
 E_country_by_Product_CH4 = sumDims(AEMatrix(:,:,:,:,2),[3]);
 E_country_by_Product_N2O = sumDims(AEMatrix(:,:,:,:,3),[3]);
@@ -165,7 +165,7 @@ E_world_by_Product_Gas_CIs = calCIs(E_world_by_Product_Gas_MC);
 E_world_by_Product_Gas_lower = squeeze(E_world_by_Product_Gas_CIs(:,:,2));
 E_world_by_Product_Gas_upper = squeeze(E_world_by_Product_Gas_CIs(:,:,3));
 
-%% Data for Figure 1 & ED4
+%% Data for Figure 1 & ED3
 E_reg_tmp = sumDims(Regional_AEMatrix_PGroup,[4,5]);
 E_reg_by_Process_pos = E_reg_tmp;
 E_reg_by_Process_pos(E_reg_by_Process_pos<0) = 0;
@@ -196,7 +196,7 @@ E_world_by_Region_neg(E_world_by_Region_neg>0) = 0;
 E_world_by_Region_pos = sumDims(E_world_by_Region_pos,2);
 E_world_by_Region_neg = sumDims(E_world_by_Region_neg,2);
 
-%% Data for Figure 2 & ED3
+%% Data for Figure 2 & ED2
 e_reg_LUC = NanCheck(E_reg_LUC./L_reg);
 f_reg_LUC = NanCheck(E_reg_LUC./A_reg);
 e_reg_Ag = NanCheck(E_reg_Ag./L_reg);
@@ -256,7 +256,7 @@ for iblue = 1:length(BLUEmodesNames)
     end
 end
 
-%% Data for Figure ED5 (changes over the last decade)
+%% Data for Figure ED4 (changes over the last decade)
 E_country_by_Product_avg = squeeze(mean(E_country_by_Product(:,(end-10):end,:),2));
 E_country_by_Product_chg = squeeze(E_country_by_Product(:,end,:)./E_country_by_Product(:,end-10,:)) - 1;
 A_country_by_Product_chg = squeeze(A_country_by_Product_mix(:,end,:)./A_country_by_Product_mix(:,end-10,:)) - 1;
@@ -265,7 +265,7 @@ l_country_by_Product_chg = squeeze(l_country_by_Product_mix(:,end,:)./l_country_
 e_country_by_Product_chg = squeeze(e_country_by_Product(:,end,:)./e_country_by_Product(:,end-10,:)) - 1;
 f_country_by_Product_chg = squeeze(f_country_by_Product_mix(:,end,:)./f_country_by_Product_mix(:,end-10,:)) - 1;
 
-%% Data for Figure ED7
+%% Data for Figure ED6
 E_world_by_PGroup_wFeed = zeros(nyear,nprodgroup);
 for m=1:nprodgroup
     for i=1:nproduct
@@ -275,18 +275,18 @@ for m=1:nprodgroup
     end
 end
 
-%% Data for Figure ED8
+%% Data for Figure ED7
 E_reg_by_GHG_nprctile = prctile(E_reg_by_GHG_ntimes,[2.5 5 10 16 25 75 84 90 95 97.5],4);
 E_reg_Allgas_nprctile = prctile(sum(E_reg_by_GHG_ntimes,3),[2.5 5 10 16 25 75 84 90 95 97.5],4);
 E_reg_by_GHG_mean = mean(E_reg_by_GHG_ntimes,4);
 
-%% Data for Figure ED9
+%% Data for Figure ED8
 E_reg_Ag_ntimes = sumDims(AEMatrix_Ag_RgYPcG,[3,4]);
 E_reg_Ag_ntimes(end+1,:,:) = sum(E_reg_Ag_ntimes(1:end,:,:),1);
 E_reg_Ag_nprctile = prctile(E_reg_Ag_ntimes,[2.5 5 10 16 25 75 84 90 95 97.5],3);
 E_reg_Ag_mean = mean(E_reg_Ag_ntimes,3);
 
-%% Data for Figure ED10 & ED11
+%% Data for Figure ED9 & ED10
 E_reg_LUC_nBLUE = squeeze(mean(sumDims(AEMatrix_All_RgYPc(:,:,[1,2,3,12,13],:,:),3),3));
 E_reg_LUC_nBLUE(end+1,:,:) = sum(E_reg_LUC_nBLUE(1:end,:,:),1);
 E_reg_nBLUE = E_reg_LUC_nBLUE + repmat(E_reg_Ag,[1,1,size(E_reg_LUC_nBLUE,3)]);
@@ -297,7 +297,7 @@ E_reg_LUC_HN_BLUE = (E_reg_LUC_HN + E_reg_LUC(:,1:55))/2;
 E_reg_HN = E_reg_LUC_HN + E_reg_Ag(:,1:55);
 E_reg_HN_BLUE = E_reg_LUC_HN_BLUE + E_reg_Ag(:,1:55);
 
-%% Data for Fig ED12
+%% Data for Fig ED11
 Change_E_nBLUE = E_reg_nBLUE./repmat(E_reg_nBLUE(:,1,:),[1,length(Years),1])-1;
 Change_E_MC = E_reg_MC./repmat(E_reg_MC(:,1,:,:),[1,length(Years),1,1])-1;
 Change_E_CIs = calCIs(Change_E_MC);
@@ -309,11 +309,6 @@ Change_f_HN_BLUE = f_reg_HN_BLUE./repmat(f_reg_HN_BLUE(:,1),[1,length(Years_HN)]
 
 
 %% Save
-% Rename
-ProcessNames(ismember(ProcessNames,{'LUC-Wood'})) = {'Wood Harvest'};
-ProcessNames(ismember(ProcessNames,{'LUC-Forest'})) = {'Ag. Abandonment'};
-ProdGroupNames(ismember(ProdGroupNames,{'nes'})) = {'No Product'};
-allNames(ismember(allNames,{'nes'})) = {'No Product'};
 YearNames = cellfun(@(x){['Y' num2str(x)]},num2cell(Years));
 writeTable(OutExcelFile,'1.1.LUEmis',E_reg,{'Area','Year'},RegionNames,YearNames)
 writeTable(OutExcelFile,'1.2.LUEmis',permute(E_reg_by_Process,[1,3,2]),{'Area','Process','Year'},RegionNames,ProcessNames,YearNames)

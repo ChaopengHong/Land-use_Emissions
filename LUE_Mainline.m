@@ -53,7 +53,7 @@ prodNames2 = [cropNames ; livestockprodNames2 ; forestprodNames];
 ProdGroupNames = {'Wood','Pork','Beef','Chicken','Other Meat','Dairy','Cereals','Veg','Fruit','Pulses','Oil Crops','Fiber','Spices','Sugar'};
 RegionNames = {'Europe and Russia','Oceania','North America','Latin America','East Asia','Southeast Asia','South Asia','sub-Saharan Africa','Middle East','World'};
 GasNames = {'CO2','CH4','N2O'};
-ProcessNames = {'LUC-Crops','LUC-Pasture','LUC-Wood','Fertilizer','Enteric Ferm.','Manure Management','Rice','Manure-Soil','Manure-Pasture','Residues','Burning','Peatland','LUC-Forest'};
+ProcessNames = {'LUC-Crops','LUC-Pasture','Wood Harvest','Fertilizer','Enteric Ferm.','Manure Management','Rice','Manure-Soil','Manure-Pasture','Residues','Burning','Peatland','Ag. Abandonment'};
 DriversNames = {'Population [1000]','Ag Production [t]','Wood Production [m3]','Crop Area [ha]','Livestock Head','Pasture Area [ha]','Forest Area [ha]','Ag Production [kcal]','Ag Production [$]','Livestock Area [ha]'};
 
 
@@ -427,8 +427,8 @@ AEMatrix(:,:,11,:,2) = permute(P11_AGems_burnresid_CH4,[1,3,2]) .* CH4_GWP;  %pr
 
 % Reassign process 13 (abandonment) to a non-existing product
 nproduct_org = size(allCodes,1);
-allNames(nproduct_org+1,1) = {'nes'};
-ProdGroupNames(1,15) = {'nes'};
+allNames(nproduct_org+1,1) = {'No Product'};
+ProdGroupNames(1,15) = {'No Product'};
 prod_categoryCodes(nproduct_org+1) = 15;
 AEMatrix(:,:,13,nproduct_org+1,:) = AEMatrix(:,:,13,nproduct_org,:);
 AEMatrix(:,:,13,nproduct_org,:) = 0;
